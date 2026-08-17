@@ -593,5 +593,10 @@
     "event": "app_close",
     "app": "Polaris",
     "time": "2026-08-17T16:23:10+08:00"
+  },
+  {
+    "event": "app_close",
+    "app": "微信",
+    "time": "2026-08-17T16:23:18+08:00"
   }
 ]
