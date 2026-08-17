@@ -203,5 +203,10 @@
     "event": "app_open",
     "app": "Polaris",
     "time": "2026-08-17T12:51:03+08:00"
+  },
+  {
+    "event": "app_close",
+    "app": "Polaris",
+    "time": "2026-08-17T12:51:57+08:00"
   }
 ]
