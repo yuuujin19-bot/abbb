@@ -2,6 +2,7 @@ import asyncio
 from bleak import BleakScanner, BleakClient
 
 DEVICE_NAME = "SX765B"
+WRITE_HANDLE = 8
 
 async def main():
     print("Scanning...")
@@ -16,33 +17,23 @@ async def main():
         return
     print("Found: " + str(device.name))
     async with BleakClient(device.address) as client:
-        print("Connected!\n")
-        print("=== ALL SERVICES AND CHARACTERISTICS ===\n")
-        for service in client.services:
-            print(f"Service: {service.uuid} (handle {service.handle})")
-            for char in service.characteristics:
-                print(f"  Char: {char.uuid}")
-                print(f"        Handle: {char.handle} | Props: {char.properties}")
-            print()
+        print("Connected!")
 
-        # Try all writable characteristics with vibrate command
-        print("=== TRYING ALL WRITABLE CHARS ===\n")
-        vib_cmd = bytes([0x55, 0x03, 0x00, 0x00, 0x01, 0x05, 0x00])
-        for service in client.services:
-            for char in service.characteristics:
-                if "write-without-response" in char.properties:
-                    print(f"Writing to handle {char.handle} ({char.uuid})...")
-                    try:
-                        await client.write_gatt_char(char.handle, vib_cmd, response=False)
-                        print(f"  -> OK! Did the toy move? (waiting 3s)")
-                        await asyncio.sleep(3)
-                        # stop
-                        await client.write_gatt_char(char.handle, bytes([0x55, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
-                        print(f"  -> Stopped")
-                    except Exception as e:
-                        print(f"  -> Error: {e}")
-                    await asyncio.sleep(1)
+        # Vibrate test - intensity 3/20, 3 seconds
+        print("Vibrate test...")
+        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x03, 0x00, 0x00, 0x01, 0x03, 0x00]), response=False)
+        await asyncio.sleep(3)
+        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
+        print("Vibrate stopped.")
+        await asyncio.sleep(1)
 
-        print("\nDone! Note which handle made the toy move.")
+        # Suction test - intensity 2/10, 3 seconds
+        print("Suction test...")
+        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x02, 0x00, 0x00]), response=False)
+        await asyncio.sleep(3)
+        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
+        print("Suction stopped.")
+
+        print("\nAll good! Both channels work.")
 
 asyncio.run(main())
