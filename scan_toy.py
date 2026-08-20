@@ -18,73 +18,31 @@ async def main():
     print("Found: " + str(device.name))
     async with BleakClient(device.address) as client:
         print("Connected!\n")
+        print("=== Brute-force CMD bytes on handle 8 ===")
+        print("Looking for suction. Press Ctrl+C if something dangerous happens.\n")
 
-        print("=== Testing suction commands on handle 8 ===\n")
+        # Skip 0x03 (known vibrate)
+        # Try CMD 0x04 to 0x14, two formats each
+        for cmd in [0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14]:
+            # Format A: [55, cmd, 00, 00, level, 00, 00]
+            data_a = bytes([0x55, cmd, 0x00, 0x00, 0x03, 0x00, 0x00])
+            print(f"CMD 0x{cmd:02X} format A: {data_a.hex(' ')}")
+            await client.write_gatt_char(WRITE_HANDLE, data_a, response=False)
+            await asyncio.sleep(2)
+            # stop attempt
+            await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, cmd, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
+            await asyncio.sleep(0.5)
 
-        # Format 1: v6 constrict [0x55, 0x09, 0x00, 0x00, level, 0x00, 0x00]
-        print("Test 1: v6 constrict format [55 09 00 00 03 00 00]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x03, 0x00, 0x00]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
+            # Format B: [55, cmd, 00, 00, 01, level, 00]
+            data_b = bytes([0x55, cmd, 0x00, 0x00, 0x01, 0x03, 0x00])
+            print(f"CMD 0x{cmd:02X} format B: {data_b.hex(' ')}")
+            await client.write_gatt_char(WRITE_HANDLE, data_b, response=False)
+            await asyncio.sleep(2)
+            # stop attempt
+            await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, cmd, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
+            await asyncio.sleep(0.5)
 
-        # Format 2: SL278H style [0x55, 0x04, 0x00, 0x00, 0x01, intensity, 0xAA]
-        print("Test 2: SL278H format [55 04 00 00 01 50 AA]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x04, 0x00, 0x00, 0x01, 0x50, 0xAA]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0xAA]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
-
-        # Format 3: v6 constrict with higher level
-        print("Test 3: v6 constrict higher [55 09 00 00 05 00 00]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x05, 0x00, 0x00]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
-
-        # Format 4: CMD 0x06 (some SVAKOM models use this for suction)
-        print("Test 4: CMD 06 [55 06 00 00 01 03 00]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x06, 0x00, 0x00, 0x01, 0x03, 0x00]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
-
-        # Format 5: CMD 0x04 without tail
-        print("Test 5: CMD 04 no tail [55 04 00 00 01 03 00]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x04, 0x00, 0x00, 0x01, 0x03, 0x00]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
-
-        # Format 6: vibrate channel 2 [0x55, 0x03, 0x02, 0x00, 0x01, 0x05, 0x00]
-        print("Test 6: vibrate ch2 [55 03 02 00 01 05 00]")
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x03, 0x02, 0x00, 0x01, 0x05, 0x00]), response=False)
-        await asyncio.sleep(3)
-        await client.write_gatt_char(WRITE_HANDLE, bytes([0x55, 0x03, 0x02, 0x00, 0x00, 0x00, 0x00]), response=False)
-        print("  stopped\n")
-        await asyncio.sleep(1)
-
-        print("=== Now trying other handles with suction ===\n")
-        suck_cmd = bytes([0x55, 0x09, 0x00, 0x00, 0x03, 0x00, 0x00])
-        stop_cmd = bytes([0x55, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00])
-        for service in client.services:
-            for char in service.characteristics:
-                if "write-without-response" in char.properties and char.handle != 8:
-                    print(f"Suction on handle {char.handle}...")
-                    try:
-                        await client.write_gatt_char(char.handle, suck_cmd, response=False)
-                        await asyncio.sleep(3)
-                        await client.write_gatt_char(char.handle, stop_cmd, response=False)
-                        print("  stopped")
-                    except Exception as e:
-                        print(f"  Error: {e}")
-                    await asyncio.sleep(1)
-
-        print("\nDone! Which test made suction work?")
+        print("\nDone! Which CMD and format triggered suction?")
+        print("Tell me the hex line that was printed right before suction started.")
 
 asyncio.run(main())
