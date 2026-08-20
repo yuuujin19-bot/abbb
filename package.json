@@ -1,5 +1,6 @@
 {
-  "name": "sx765b-bridge",
-  "private": true,
-  "description": "ignore - python project, see nixpacks.toml"
+ "name": "phone-monitor",
+ "version": "1.0.0",
+ "private": true,
+ "type": "module"
 }
